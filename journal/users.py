@@ -89,7 +89,7 @@ def journal_user():
                 print('connection closed')
             else:
                 print('the connection never opened, nothing to close')
-    if request.method == "PATCH":
+    elif request.method == "PATCH":
         data = request.json
         edit_email = data.get("email")          
         edit_password = data.get("password")
@@ -149,6 +149,79 @@ def journal_user():
                 return Response(json.dumps(patch_fail, default=str),
                                     mimetype="application/json",
                                     status=401)
+        except mariadb.DatabaseError:
+            print('Something went wrong with connecting to database')
+        except mariadb.DataError: 
+            print('Something went wrong with your data')
+        except mariadb.OperationalError:
+            print('Something wrong with the connection')
+        except mariadb.ProgrammingError:
+            print('Your query was wrong')
+        except mariadb.IntegrityError:
+            print('Your query would have broken the database and we stopped it')
+        except mariadb.InterfaceError:
+            print('Something wrong with database interface')
+        except:
+            print('Something went wrong')
+        finally:
+            if(cursor != None):
+                cursor.close()
+                print('cursor closed')
+            else:
+                print('no cursor to begin with')
+            if(conn != None):   
+                conn.rollback()
+                conn.close()
+                print('connection closed')
+            else:
+                print('the connection never opened, nothing to close')
+    elif request.method == "DELETE":
+        data = request.json
+        user_password = data.get("password")
+        user_token = data.get("loginToken")
+        sucess_del = {
+            "message" : "user now deleted"
+        }
+        fail_del = {
+            "message" : "something went wrong with deleteing the user"
+        }
+        #checking passed data 
+        if (len(user_password) > 21 or len(user_password) < 1):
+                return Response(json.dumps(if_empty),
+                                mimetype='application/json',
+                                status=400)
+        if (len(user_token) != 32):
+            return Response(json.dumps(fail_del),
+                                mimetype='application/json',
+                                status=400)
+        try:
+            conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute("SELECT login_token FROM user_session WHERE login_token=?",[user_token,])
+            valid_token = cursor.fetchone()
+            if(len(valid_token) != 1):
+                    return Response(json.dumps(fail_del, default=str),
+                                mimetype="application/json",
+                                status=401)
+            cursor.execute("SELECT password FROM user WHERE password=?",[user_password,])
+            valid_pass = cursor.fetchone()
+            if(valid_pass == None):
+                    return Response(json.dumps(fail_del, default=str),
+                                mimetype="application/json",
+                                status=401)
+            #first checks if the token is in the db, then id the password is in the db and if they are and match then they have the permission to delete the user
+            if (valid_token[0] == user_token and valid_pass[0] == user_password):
+                cursor.execute("DELETE FROM user_session WHERE login_token=?",[valid_token[0]])
+                cursor.execute("DELETE FROM user WHERE password=?",[user_password,])
+                conn.commit()
+                if (cursor.rowcount == 1):
+                    return Response(json.dumps(sucess_del, default=str),
+                                                mimetype='application/json',
+                                                status=200)
+                else:
+                    return Response(json.dumps(fail_del, default=str),
+                                                mimetype="application/json",
+                                                status=400)
         except mariadb.DatabaseError:
             print('Something went wrong with connecting to database')
         except mariadb.DataError: 
