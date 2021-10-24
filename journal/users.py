@@ -11,26 +11,26 @@ from uuid import uuid4
 def journal_user():
     conn = None
     cursor = None
+    if_empty = {
+            "message" : "Enter in required data"
+        }
+    invalid_email = {
+                "messgae" : "please use a valid email"
+                        }
+    pattern = "[a-zA-Z0-9]+@[a-zA-Z]+\.(com|edu|net)"
+    len_error = {
+            "message" : "Length of input exceeds limit"
+        }
     if request.method == "POST":
         data = request.json
         user_email = data.get("email")          
         user_password = data.get("password")
         first_name = data.get("firstName")
-        if_empty = {
-            "message" : "Enter in required data"
-        }
-        invalid_email = {
-                "messgae" : "please use a valid email"
-                        }
-        pattern = "[a-zA-Z0-9]+@[a-zA-Z]+\.(com|edu|net)"
-        len_error = {
-            "message" : "Length of input exceeds limit"
-        }
         if (user_email == ''):
             return Response(json.dumps(if_empty, default=str),
                     mimetype='application/json',
                     status=409)
-        elif (len(first_name) > 31 or len(first_name) < 1):
+        elif (len(first_name) > 16 or len(first_name) < 1):
             return Response(json.dumps(len_error, default=str),
                             mimetype='application/json',
                             status=409)
@@ -53,15 +53,102 @@ def journal_user():
             tokenID = uuid4().hex
             cursor.execute("INSERT INTO user_session(login_token, user_id) VALUES (?, ?)",[tokenID, userID[0],])
             conn.commit()
-            cursor.execute("SELECT user.first_name, user_session.login_token FROM user_session INNER JOIN user ON user_session.user_id=user.id WHERE id=?",[userID[0],])
+            cursor.execute("SELECT user.id, user.first_name, user_session.login_token FROM user_session INNER JOIN user ON user_session.user_id=user.id WHERE id=?",[userID[0],])
             user_info = cursor.fetchone()
             login_resp = {
-                "firstName" : user_info[0],
-                "loginToken" : user_info[1]
+                "userId" : user_info[0],
+                "firstName" : user_info[1],
+                "loginToken" : user_info[2]
             }
             return Response(json.dumps(login_resp, default=str),
                             mimetype='application/json',
                             status=201)
+        except mariadb.DatabaseError:
+            print('Something went wrong with connecting to database')
+        except mariadb.DataError: 
+            print('Something went wrong with your data')
+        except mariadb.OperationalError:
+            print('Something wrong with the connection')
+        except mariadb.ProgrammingError:
+            print('Your query was wrong')
+        except mariadb.IntegrityError:
+            print('Your query would have broken the database and we stopped it')
+        except mariadb.InterfaceError:
+            print('Something wrong with database interface')
+        except:
+            print('Something went wrong')
+        finally:
+            if(cursor != None):
+                cursor.close()
+                print('cursor closed')
+            else:
+                print('no cursor to begin with')
+            if(conn != None):   
+                conn.rollback()
+                conn.close()
+                print('connection closed')
+            else:
+                print('the connection never opened, nothing to close')
+    if request.method == "PATCH":
+        data = request.json
+        edit_email = data.get("email")          
+        edit_password = data.get("password")
+        edit_name = data.get("firstName")
+        edit_token = data.get("loginToken")
+        edit_keys = data.keys()
+        patch_fail = {
+            "message" : "failed to match the login token to a user"
+        }
+        if(edit_email != None):
+            if(re.search(pattern, edit_email) == None):
+                return Response(json.dumps(invalid_email,default=str),
+                                mimetype='application/json',
+                                status=400)
+            if (edit_password != None and len(edit_password) > 21):
+                return Response(json.dumps(len_error),
+                            mimetype='application/json',
+                            status=400)
+            if (edit_name != None and len(edit_name) > 16):
+                return Response(json.dumps(len_error),
+                            mimetype='application/json',
+                            status=400)
+        try:
+            if (len(edit_token) == 32):
+                conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
+                cursor = conn.cursor()
+                #from the token grab the userid to then make changes to the users info
+                cursor.execute("SELECT user_id FROM user_session WHERE login_token=?",[edit_token,])
+                varified_user = cursor.fetchone()
+                if (len(varified_user) == 1):
+                    try:
+                        if "email" in edit_keys:
+                            cursor.execute("UPDATE user set email=? WHERE id=?",[edit_email, varified_user[0]])
+                            conn.commit()
+                            cursor.execute("SELECT id, email, first_name FROM user WHERE id=?",[varified_user[0],])
+                            user_info = cursor.fetchone()
+                        if "password" in edit_keys:
+                            cursor.execute("UPDATE user set email=? WHERE id=?",[edit_password, varified_user[0]])
+                            conn.commit()
+                            cursor.execute("SELECT id, email, first_name FROM user WHERE id=?",[varified_user[0],])
+                            user_info = cursor.fetchone()
+                        if "firstName" in edit_keys:
+                            cursor.execute("UPDATE user set first_name=? WHERE id=?",[edit_name, varified_user[0]])
+                            conn.commit()
+                            cursor.execute("SELECT id, email, first_name FROM user WHERE id=?",[varified_user[0],])
+                            user_info = cursor.fetchone()
+                    finally:
+                            a_user = {
+                                "userId" : user_info[0],
+                                "email" : user_info[1],
+                                "firstName" : user_info[2],
+                            }
+                            return Response(json.dumps(a_user, default=str),
+                                                    mimetype='application/json',
+                                                    status=200)
+            else:
+                return Response(json.dumps(patch_fail, default=str),
+                                    mimetype="application/json",
+                                    status=401)
         except mariadb.DatabaseError:
             print('Something went wrong with connecting to database')
         except mariadb.DataError: 
