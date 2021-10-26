@@ -131,3 +131,63 @@ def journalQuotes():
             print('connection closed')
         else:
             print('the connection never opened, nothing to close')
+
+    if request.method == "DELETE":
+        data = request.json
+        Etoken = data.get("editorToken")
+        quoteID = data.get("quoteId")
+        delete_fail = {
+            "message" : "something went wrong with deleting quote"
+        }
+        confirm = {
+            "message" : "quote deleted"
+        }
+        data_error = {
+            "message" : "something wrong with passed data"
+        }
+        if (len(Etoken) == 32 and isinstance(quoteID, int) == True):
+            try:
+                conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
+                cursor = conn.cursor()
+                cursor.execute("SELECT editor_id FROM editor_session WHERE editor_token=?",[Etoken,])
+                session_editorID = cursor.fetchone()
+                if(len(session_editorID)==1):
+                    cursor.execute("DELETE from quote WHERE id=?",[quoteID])
+                    conn.commit()
+                    return Response(json.dumps(confirm, default=str),
+                                        mimetype="application/json",
+                                        status=200)
+                else:
+                    return Response(json.dumps(delete_fail, default=str),
+                                        mimetype="application/json",
+                                        status=400)
+            except mariadb.DatabaseError:
+                print('Something went wrong with connecting to database')
+            except mariadb.DataError: 
+                print('Something went wrong with your data')
+            except mariadb.OperationalError:
+                print('Something wrong with the connection')
+            except mariadb.ProgrammingError:
+                print('Your query was wrong')
+            except mariadb.IntegrityError:
+                print('Your query would have broken the database and we stopped it')
+            except mariadb.InterfaceError:
+                print('Something wrong with database interface')
+            except:
+                print('Something went wrong')
+            finally:
+                if(cursor != None):
+                    cursor.close()
+                    print('cursor closed')
+                else:
+                    print('no cursor to begin with')
+                if(conn != None):   
+                    conn.rollback()
+                    conn.close()
+                    print('connection closed')
+                else:
+                    print('the connection never opened, nothing to close')
+        else:
+            return Response(json.dumps(data_error, default=str),
+                                mimetype='application/json',
+                                status=401)
