@@ -7,3 +7,4 @@ import journal.users
 import journal.editors
 import journal.userlogin
 import journal.editorlogin
+import journal.quotes
