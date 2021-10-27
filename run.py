@@ -12,6 +12,7 @@ if(len(sys.argv) > 1):
     elif(mode == "testing"):
         from flask_cors import CORS
         CORS(app)
+        app.config['CORS_HEADERS'] = 'Content-Type'
         print("server is running in testing mode, switch to production when needed")
         app.run(debug=True)
     else:

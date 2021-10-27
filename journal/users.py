@@ -6,6 +6,7 @@ import json
 import datetime
 import re
 from uuid import uuid4
+import bcrypt
 
 @app.route("/api/users", methods=["POST", "PATCH", "DELETE" ])
 def journal_user():
@@ -21,6 +22,7 @@ def journal_user():
     len_error = {
             "message" : "Length of input exceeds limit"
         }
+    salt = bcrypt.gensalt()
     if request.method == "POST":
         data = request.json
         user_email = data.get("email")          
@@ -34,7 +36,7 @@ def journal_user():
             return Response(json.dumps(len_error, default=str),
                             mimetype='application/json',
                             status=409)
-        elif (len(user_password) > 21 or len(user_password) < 1):
+        elif (len(user_password) > 150 or len(user_password) < 1):
             return Response(json.dumps(len_error,default=str),
                             mimetype='application/json',
                             status=409)
@@ -43,12 +45,13 @@ def journal_user():
             return Response(json.dumps(invalid_email,default=str),
                             mimetype='application/json',
                             status=409)
+        hashed = bcrypt.hashpw(user_password.encode(), salt)
         try:
             conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO user(email, password, first_name) VALUES (?,?,?)",[user_email,user_password, first_name]) 
+            cursor.execute("INSERT INTO user(email, password, first_name) VALUES (?,?,?)",[user_email,hashed, first_name]) 
         #in order to send back a token you need to create a token in the data user_session table created with the selected id 
-            cursor.execute("SELECT id FROM user WHERE email=? AND password=?",[user_email, user_password,])
+            cursor.execute("SELECT id FROM user WHERE email=? AND password=?",[user_email, hashed,])
             userID = cursor.fetchone()
             tokenID = uuid4().hex
             cursor.execute("INSERT INTO user_session(login_token, user_id) VALUES (?, ?)",[tokenID, userID[0],])
@@ -104,7 +107,7 @@ def journal_user():
                 return Response(json.dumps(invalid_email,default=str),
                                 mimetype='application/json',
                                 status=400)
-            if (edit_password != None and len(edit_password) > 21):
+            if (edit_password != None and len(edit_password) > 150):
                 return Response(json.dumps(len_error),
                             mimetype='application/json',
                             status=400)
@@ -127,7 +130,8 @@ def journal_user():
                             cursor.execute("SELECT id, email, first_name FROM user WHERE id=?",[varified_user[0],])
                             user_info = cursor.fetchone()
                         if "password" in edit_keys:
-                            cursor.execute("UPDATE user set email=? WHERE id=?",[edit_password, varified_user[0]])
+                            hashedpass = bcrypt.hashpw(edit_password.encode(), salt)
+                            cursor.execute("UPDATE user set password=? WHERE id=?",[hashedpass, varified_user[0]])
                             conn.commit()
                             cursor.execute("SELECT id, email, first_name FROM user WHERE id=?",[varified_user[0],])
                             user_info = cursor.fetchone()
@@ -186,7 +190,7 @@ def journal_user():
             "message" : "something went wrong with deleteing the user"
         }
         #checking passed data 
-        if (len(user_password) > 21 or len(user_password) < 1):
+        if (len(user_password) > 150 or len(user_password) < 1):
                 return Response(json.dumps(if_empty),
                                 mimetype='application/json',
                                 status=400)
@@ -203,16 +207,19 @@ def journal_user():
                     return Response(json.dumps(fail_del, default=str),
                                 mimetype="application/json",
                                 status=401)
-            cursor.execute("SELECT password FROM user WHERE password=?",[user_password,])
-            valid_pass = cursor.fetchone()
+            cursor.execute("SELECT user.password, user_session.user_id FROM user_session INNER JOIN user ON user_session.user_id=user.id WHERE login_token=?",[valid_token[0],])
+            valid_info = cursor.fetchone()
+            valid_pass = valid_info[0]
             if(valid_pass == None):
                     return Response(json.dumps(fail_del, default=str),
                                 mimetype="application/json",
                                 status=401)
-            #first checks if the token is in the db, then id the password is in the db and if they are and match then they have the permission to delete the user
-            if (valid_token[0] == user_token and valid_pass[0] == user_password):
+            #first checks if the token is in the db,if they match then they have the permission to delete the user
+            if (valid_token[0] == user_token):
                 cursor.execute("DELETE FROM user_session WHERE login_token=?",[valid_token[0]])
-                cursor.execute("DELETE FROM user WHERE password=?",[user_password,])
+                conn.commit()
+            if(bcrypt.checkpw(user_password.encode(), valid_pass)):
+                cursor.execute("DELETE FROM user WHERE password=?",[valid_pass,])
                 conn.commit()
                 if (cursor.rowcount == 1):
                     return Response(json.dumps(sucess_del, default=str),
