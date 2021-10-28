@@ -36,7 +36,7 @@ def journal_user():
             return Response(json.dumps(len_error, default=str),
                             mimetype='application/json',
                             status=409)
-        elif (len(user_password) > 150 or len(user_password) < 1):
+        elif (len(user_password) < 1 or len(user_password) > 151):
             return Response(json.dumps(len_error,default=str),
                             mimetype='application/json',
                             status=409)
@@ -107,7 +107,7 @@ def journal_user():
                 return Response(json.dumps(invalid_email,default=str),
                                 mimetype='application/json',
                                 status=400)
-            if (edit_password != None and len(edit_password) > 150):
+            if (edit_password != None and len(edit_password) > 151):
                 return Response(json.dumps(len_error),
                             mimetype='application/json',
                             status=400)
@@ -181,7 +181,7 @@ def journal_user():
                 print('the connection never opened, nothing to close')
     elif request.method == "DELETE":
         data = request.json
-        user_password = data.get("password")
+        user_pass = data.get("password")
         user_token = data.get("loginToken")
         sucess_del = {
             "message" : "user now deleted"
@@ -190,7 +190,7 @@ def journal_user():
             "message" : "something went wrong with deleteing the user"
         }
         #checking passed data 
-        if (len(user_password) > 150 or len(user_password) < 1):
+        if (len(user_pass) > 151 or len(user_pass) < 1):
                 return Response(json.dumps(if_empty),
                                 mimetype='application/json',
                                 status=400)
@@ -218,17 +218,17 @@ def journal_user():
             if (valid_token[0] == user_token):
                 cursor.execute("DELETE FROM user_session WHERE login_token=?",[valid_token[0]])
                 conn.commit()
-            if(bcrypt.checkpw(user_password.encode(), valid_pass)):
+            if(bcrypt.checkpw(user_pass.encode(), valid_pass.encode())):
                 cursor.execute("DELETE FROM user WHERE password=?",[valid_pass,])
                 conn.commit()
                 if (cursor.rowcount == 1):
                     return Response(json.dumps(sucess_del, default=str),
                                                 mimetype='application/json',
                                                 status=200)
-                else:
-                    return Response(json.dumps(fail_del, default=str),
-                                                mimetype="application/json",
-                                                status=400)
+            else:
+                return Response(json.dumps(fail_del, default=str),
+                                            mimetype="application/json",
+                                            status=400)
         except mariadb.DatabaseError:
             print('Something went wrong with connecting to database')
         except mariadb.DataError: 

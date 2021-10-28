@@ -6,6 +6,7 @@ import json
 import datetime
 from uuid import uuid4
 import re
+import bcrypt
 
 
 @app.route("/api/userlogin", methods=["POST", "DELETE"])
@@ -51,7 +52,7 @@ def userlogin():
                                             mimetype='application/json',
                                             status=401)
             #if userid's correspond then create/insert a token for their session
-            elif (user_pass == user_info[0]):
+            elif (bcrypt.checkpw(user_pass.encode(),user_info[0].encode())):
                 tokenID = uuid4().hex
                 cursor.execute("INSERT INTO user_session (login_token,user_id) VALUES (?,?)",[tokenID,user_info[1]])
                 conn.commit()

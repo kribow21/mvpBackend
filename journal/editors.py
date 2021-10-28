@@ -6,11 +6,14 @@ import json
 import datetime
 import re
 from uuid import uuid4
+import bcrypt
+
 
 @app.route("/api/editors", methods=["POST", "PATCH", "DELETE" ])
 def journal_editor():
     conn = None
     cursor = None
+    salt = bcrypt.gensalt()
     if_empty = {
             "message" : "Enter in required data"
         }
@@ -29,7 +32,7 @@ def journal_editor():
             return Response(json.dumps(if_empty, default=str),
                     mimetype='application/json',
                     status=409)
-        elif (len(editor_password) > 21 or len(editor_password) < 1):
+        elif (len(editor_password) < 1):
             return Response(json.dumps(len_error,default=str),
                             mimetype='application/json',
                             status=409)
@@ -38,12 +41,13 @@ def journal_editor():
             return Response(json.dumps(invalid_email,default=str),
                             mimetype='application/json',
                             status=409)
+        hashed = bcrypt.hashpw(editor_password.encode(), salt)
         try:
             conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO editor(email, password) VALUES (?,?)",[editor_email,editor_password]) 
+            cursor.execute("INSERT INTO editor(email, password) VALUES (?,?)",[editor_email,hashed]) 
         #in order to send back a token you need to create a token in the data editor_session table created with the selected id 
-            cursor.execute("SELECT id FROM editor WHERE email=? AND password=?",[editor_email, editor_password,])
+            cursor.execute("SELECT id FROM editor WHERE email=? AND password=?",[editor_email, hashed,])
             editorID = cursor.fetchone()
             edit_token = uuid4().hex
             cursor.execute("INSERT INTO editor_session(editor_id, editor_token) VALUES (?, ?)",[editorID[0],edit_token])
@@ -97,7 +101,7 @@ def journal_editor():
                 return Response(json.dumps(invalid_email,default=str),
                                 mimetype='application/json',
                                 status=400)
-            if (edit_password != None and len(edit_password) > 21):
+            if (edit_password != None and len(edit_password) > 151):
                 return Response(json.dumps(len_error),
                             mimetype='application/json',
                             status=400)
@@ -116,7 +120,8 @@ def journal_editor():
                             cursor.execute("SELECT id, email FROM editor WHERE id=?",[varified_editor[0],])
                             editors_info = cursor.fetchone()
                         if "password" in edit_keys:
-                            cursor.execute("UPDATE editor set password=? WHERE id=?",[edit_password, varified_editor[0]])
+                            hashedpass = bcrypt.hashpw(edit_password.encode(), salt)
+                            cursor.execute("UPDATE editor set password=? WHERE id=?",[hashedpass, varified_editor[0]])
                             conn.commit()
                             cursor.execute("SELECT id, email FROM editor WHERE id=?",[varified_editor[0],])
                             editors_info = cursor.fetchone()
@@ -169,7 +174,7 @@ def journal_editor():
             "message" : "something went wrong with deleteing the editor"
         }
         #checking passed data 
-        if (len(editor_pass) > 21 or len(editor_pass) < 1):
+        if (len(editor_pass) > 151 or len(editor_pass) < 1):
                 return Response(json.dumps(if_empty),
                                 mimetype='application/json',
                                 status=400)
@@ -186,15 +191,18 @@ def journal_editor():
                     return Response(json.dumps(fail_del, default=str),
                                 mimetype="application/json",
                                 status=401)
-            cursor.execute("SELECT password FROM editor WHERE password=?",[editor_pass,])
-            valid_pass = cursor.fetchone()
+            cursor.execute("SELECT editor.password, editor_session.editor_id FROM editor_session INNER JOIN editor ON editor_session.editor_id=editor.id WHERE editor_token=?",[valid_token[0],])
+            valid_info = cursor.fetchone()
+            valid_pass = valid_info[0]
             if(valid_pass == None):
                     return Response(json.dumps(fail_del, default=str),
                                 mimetype="application/json",
                                 status=401)
             #first checks if the token is in the db, then id the password is in the db and if they are and match then they have the permission to delete the editor
-            if (valid_token[0] == editor_token and valid_pass[0] == editor_pass):
+            if (valid_token[0] == editor_token):
                 cursor.execute("DELETE FROM editor_session WHERE editor_token=?",[valid_token[0]])
+                conn.commit()
+            if(bcrypt.checkpw(editor_pass.encode(), valid_pass.encode())):
                 cursor.execute("DELETE FROM editor WHERE password=?",[editor_pass,])
                 conn.commit()
                 if (cursor.rowcount == 1):

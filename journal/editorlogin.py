@@ -6,6 +6,7 @@ import json
 import datetime
 from uuid import uuid4
 import re
+import bcrypt
 
 
 @app.route("/api/editorlogin", methods=["POST", "DELETE"])
@@ -51,7 +52,7 @@ def editorlogin():
                                             mimetype='application/json',
                                             status=401)
             #if editorid's correspond then create/insert a token for their session
-            elif (editor_pass == editor_info[0]):
+            elif (bcrypt.checkpw(editor_pass.encode(),editor_info[0].encode())):
                 tokenID = uuid4().hex
                 cursor.execute("INSERT INTO editor_session (editor_token,editor_id) VALUES (?,?)",[tokenID,editor_info[1]])
                 conn.commit()
