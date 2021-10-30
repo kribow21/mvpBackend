@@ -89,7 +89,7 @@ def journalQuotes():
             }
             return Response(json.dumps(the_quote, default=str),
                             mimetype='application/json',
-                            status=201)
+                            status=200)
         else:
             conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
             cursor = conn.cursor()

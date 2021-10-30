@@ -8,3 +8,4 @@ import journal.editors
 import journal.userlogin
 import journal.editorlogin
 import journal.quotes
+import journal.entry

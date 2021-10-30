@@ -8,7 +8,7 @@ import re
 from uuid import uuid4
 import bcrypt
 
-@app.route("/api/users", methods=["POST", "PATCH", "DELETE" ])
+@app.route("/api/users", methods=["POST", "GET", "PATCH", "DELETE" ])
 def journal_user():
     conn = None
     cursor = None
@@ -229,6 +229,47 @@ def journal_user():
                 return Response(json.dumps(fail_del, default=str),
                                             mimetype="application/json",
                                             status=400)
+        except mariadb.DatabaseError:
+            print('Something went wrong with connecting to database')
+        except mariadb.DataError: 
+            print('Something went wrong with your data')
+        except mariadb.OperationalError:
+            print('Something wrong with the connection')
+        except mariadb.ProgrammingError:
+            print('Your query was wrong')
+        except mariadb.IntegrityError:
+            print('Your query would have broken the database and we stopped it')
+        except mariadb.InterfaceError:
+            print('Something wrong with database interface')
+        except:
+            print('Something went wrong')
+        finally:
+            if(cursor != None):
+                cursor.close()
+                print('cursor closed')
+            else:
+                print('no cursor to begin with')
+            if(conn != None):   
+                conn.rollback()
+                conn.close()
+                print('connection closed')
+            else:
+                print('the connection never opened, nothing to close')
+    elif request.method == "GET":
+        client_params = request.args
+        client = client_params.get("userId")
+        try:
+            conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, first_name FROM user WHERE id=?",[client,])
+            user_info = cursor.fetchone()
+            a_user = {
+                "userId" : user_info[0],
+                "firstName" : user_info[1]
+            }
+            return Response(json.dumps(a_user, default=str),
+                                        mimetype='application/json',
+                                        status=200)
         except mariadb.DatabaseError:
             print('Something went wrong with connecting to database')
         except mariadb.DataError: 
