@@ -9,3 +9,4 @@ import journal.userlogin
 import journal.editorlogin
 import journal.quotes
 import journal.entry
+import journal.mood
