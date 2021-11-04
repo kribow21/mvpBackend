@@ -3,6 +3,7 @@ from flask import Flask, request, Response
 import mariadb
 import dbcreds
 import json
+import datetime
 
 
 @app.route("/api/mood", methods=["POST", "GET"])
@@ -23,6 +24,16 @@ def user_mood():
         user_token = data.get("loginToken")
         mood_date = data.get("date")
         user_mood = data.get("mood")
+        date_wrong = {
+                "message" : "Enter in correct format"
+                }
+        try:
+            #datetime is a module that has a class called datetime that has the proper format to check if the passed datetime match
+            datetime.datetime.strptime(mood_date, '%Y-%m-%d')
+        except ValueError:
+            return Response(json.dumps(date_wrong, default=str),
+                                mimetype='application/json',
+                                status=409)
     try:
         if (len(user_token) == 32):
             conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
@@ -70,3 +81,50 @@ def user_mood():
             print('connection closed')
         else:
             print('the connection never opened, nothing to close')
+
+    if request.method == "GET":
+        params = request.args
+        try:
+            if(len(params) == 1):
+                userID = params.get("userId")
+                conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
+                cursor = conn.cursor()
+                cursor.execute("SELECT date,mood FROM mood WHERE user_id=?",[userID,])
+                allMoods = cursor.fetchall()
+                print(allMoods)
+                mood_list = []
+                for mood in allMoods:
+                    a_mood = {
+                        "dateStamp" : mood[0],
+                        "mood" : mood[1]
+                        }
+                    mood_list.append(a_mood)
+                return Response(json.dumps(mood_list, default=str),
+                                        mimetype='application/json',
+                                        status=200)
+        except mariadb.DatabaseError:
+            print('Something went wrong with connecting to database')
+        except mariadb.DataError: 
+            print('Something went wrong with your data')
+        except mariadb.OperationalError:
+            print('Something wrong with the connection')
+        except mariadb.ProgrammingError:
+            print('Your query was wrong')
+        except mariadb.IntegrityError:
+            print('Your query would have broken the database and we stopped it')
+        except mariadb.InterfaceError:
+            print('Something wrong with database interface')
+        except:
+            print('Something went wrong')
+        finally:
+            if(cursor != None):
+                cursor.close()
+                print('cursor closed')
+            else:
+                print('no cursor to begin with')
+            if(conn != None):   
+                conn.rollback()
+                conn.close()
+                print('connection closed')
+            else:
+                print('the connection never opened, nothing to close')
