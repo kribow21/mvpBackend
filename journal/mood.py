@@ -92,14 +92,12 @@ def user_mood():
                 cursor.execute("SELECT date,mood FROM mood WHERE user_id=?",[userID,])
                 allMoods = cursor.fetchall()
                 print(allMoods)
-                mood_list = []
+                moods = {
+                    
+                }
                 for mood in allMoods:
-                    a_mood = {
-                        "dateStamp" : mood[0],
-                        "mood" : mood[1]
-                        }
-                    mood_list.append(a_mood)
-                return Response(json.dumps(mood_list, default=str),
+                    moods[mood[0].strftime('%Y-%m-%d')] = mood[1]
+                return Response(json.dumps(moods, default=str),
                                         mimetype='application/json',
                                         status=200)
         except mariadb.DatabaseError:
