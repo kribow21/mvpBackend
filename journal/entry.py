@@ -30,7 +30,7 @@ def journal_entry():
         except ValueError:
             return Response(json.dumps(date_wrong, default=str),
                                 mimetype='application/json',
-                                status=409)
+                                status=400)
     try:
         if (len(user_token) == 32):
             conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
