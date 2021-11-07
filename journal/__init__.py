@@ -10,3 +10,4 @@ import journal.editorlogin
 import journal.quotes
 import journal.entry
 import journal.mood
+import journal.images
