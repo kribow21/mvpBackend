@@ -4,6 +4,7 @@ import mariadb
 import dbcreds
 import json
 import datetime
+import re
 
 @app.route("/api/entry", methods=["POST", "GET", "PATCH", "DELETE" ])
 def journal_entry():
@@ -23,11 +24,8 @@ def journal_entry():
         user_token = data.get("loginToken")
         user_entry = data.get("content")
         entry_date = data.get("date")
-
-        try:
-            #datetime is a module that has a class called datetime that has the proper format to check if the passed datetime match
-            datetime.datetime.strptime(entry_date, '%Y-%m-%d')
-        except ValueError:
+        date_pattern = "^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T(2[0-3]|[01][0-9]):([0-5][0-9]):([0-5][0-9])(\.[0-9]{3})?(Z)?$"
+        if(re.search(date_pattern, entry_date) == None):
             return Response(json.dumps(date_wrong, default=str),
                                 mimetype='application/json',
                                 status=400)
@@ -96,7 +94,7 @@ def journal_entry():
             clientID = params.get("userId")
             conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM entry WHERE user_id=?",[clientID,])
+            cursor.execute("SELECT * FROM entry WHERE user_id=? AND date_stamp <= CURRENT_TIMESTAMP -7",[clientID,])
             entry_info = cursor.fetchall()
             entry_list = []
             for entry in entry_info:
