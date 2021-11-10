@@ -87,7 +87,7 @@ def journalImages():
                 all_images.append(coll)
             return Response(json.dumps(all_images, default=str),
                             mimetype='application/json',
-                            status=201)
+                            status=200)
         except mariadb.DatabaseError:
             print('Something went wrong with connecting to database')
         except mariadb.DataError: 

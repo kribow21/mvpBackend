@@ -110,7 +110,7 @@ def editorlogin():
             if (len(edit_token) == 32):
                 conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM edit_session WHERE editor_token=?",[edit_token,])
+                cursor.execute("DELETE FROM editor_session WHERE editor_token=?",[edit_token,])
                 conn.commit()
                 if (cursor.rowcount ==1):
                     return Response(json.dumps(confirm, default=str),

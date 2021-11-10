@@ -89,7 +89,7 @@ def user_mood():
                 userID = params.get("userId")
                 conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
                 cursor = conn.cursor()
-                cursor.execute("SELECT date,mood FROM mood WHERE user_id=? AND date >= CURRENT_TIMESTAMP -30",[userID,])
+                cursor.execute("SELECT date,mood FROM mood WHERE user_id=? AND date <= CURRENT_TIMESTAMP -30",[userID,])
                 # cursor.execute("SELECT date,mood FROM mood WHERE user_id=?",[userID,])
                 allMoods = cursor.fetchall()
                 print(allMoods)
