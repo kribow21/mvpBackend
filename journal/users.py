@@ -96,7 +96,6 @@ def journal_user():
         data = request.json
         edit_email = data.get("email")          
         edit_password = data.get("password")
-        edit_name = data.get("firstName")
         edit_token = data.get("loginToken")
         edit_keys = data.keys()
         patch_fail = {
@@ -108,10 +107,6 @@ def journal_user():
                                 mimetype='application/json',
                                 status=400)
             if (edit_password != None and len(edit_password) > 151):
-                return Response(json.dumps(len_error),
-                            mimetype='application/json',
-                            status=400)
-            if (edit_name != None and len(edit_name) > 16):
                 return Response(json.dumps(len_error),
                             mimetype='application/json',
                             status=400)
@@ -132,11 +127,6 @@ def journal_user():
                         if "password" in edit_keys:
                             hashedpass = bcrypt.hashpw(edit_password.encode(), salt)
                             cursor.execute("UPDATE user set password=? WHERE id=?",[hashedpass, varified_user[0]])
-                            conn.commit()
-                            cursor.execute("SELECT id, email, first_name FROM user WHERE id=?",[varified_user[0],])
-                            user_info = cursor.fetchone()
-                        if "firstName" in edit_keys:
-                            cursor.execute("UPDATE user set first_name=? WHERE id=?",[edit_name, varified_user[0]])
                             conn.commit()
                             cursor.execute("SELECT id, email, first_name FROM user WHERE id=?",[varified_user[0],])
                             user_info = cursor.fetchone()
