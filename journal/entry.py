@@ -6,7 +6,7 @@ import json
 import datetime
 import re
 
-@app.route("/api/entry", methods=["POST", "GET", "PATCH", "DELETE" ])
+@app.route("/api/entry", methods=["POST", "GET", "DELETE" ])
 def journal_entry():
     conn = None
     cursor = None
