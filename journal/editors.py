@@ -92,16 +92,15 @@ def journal_editor():
         edit_email = data.get("email")          
         edit_password = data.get("password")
         edit_token = data.get("editorToken")
-        edit_keys = data.keys()
         patch_fail = {
             "message" : "failed to match the login token to a editor"
         }
         if(edit_email != None):
-            if(re.search(pattern, edit_email) == None):
+            if(re.search(pattern, edit_email) == ""):
                 return Response(json.dumps(invalid_email,default=str),
                                 mimetype='application/json',
                                 status=400)
-            if (edit_password != None and len(edit_password) > 151):
+            if (edit_password != "" and len(edit_password) > 151):
                 return Response(json.dumps(len_error),
                             mimetype='application/json',
                             status=400)
@@ -114,12 +113,12 @@ def journal_editor():
                 varified_editor = cursor.fetchone()
                 if (len(varified_editor) == 1):
                     try:
-                        if "email" in edit_keys:
+                        if (edit_email != ""):
                             cursor.execute("UPDATE editor set email=? WHERE id=?",[edit_email, varified_editor[0]])
                             conn.commit()
                             cursor.execute("SELECT id, email FROM editor WHERE id=?",[varified_editor[0],])
                             editors_info = cursor.fetchone()
-                        if "password" in edit_keys:
+                        if (edit_password != ""):
                             hashedpass = bcrypt.hashpw(edit_password.encode(), salt)
                             cursor.execute("UPDATE editor set password=? WHERE id=?",[hashedpass, varified_editor[0]])
                             conn.commit()
