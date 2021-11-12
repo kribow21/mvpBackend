@@ -125,11 +125,11 @@ def journal_editor():
                             cursor.execute("SELECT id, email FROM editor WHERE id=?",[varified_editor[0],])
                             editors_info = cursor.fetchone()
                     finally:
-                            a_user = {
+                            a_editor = {
                                 "editorId" : editors_info[0],
                                 "email" : editors_info[1],
                             }
-                            return Response(json.dumps(a_user, default=str),
+                            return Response(json.dumps(a_editor, default=str),
                                                     mimetype='application/json',
                                                     status=200)
             else:
