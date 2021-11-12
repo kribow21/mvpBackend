@@ -11,3 +11,4 @@ import journal.quotes
 import journal.entry
 import journal.mood
 import journal.images
+import journal.books
