@@ -97,19 +97,19 @@ def journal_user():
         edit_email = data.get("email")          
         edit_password = data.get("password")
         edit_token = data.get("loginToken")
-        edit_keys = data.keys()
+
         patch_fail = {
             "message" : "failed to match the login token to a user"
         }
-        if(edit_email != None):
+        if(edit_email != ""):
             if(re.search(pattern, edit_email) == None):
                 return Response(json.dumps(invalid_email,default=str),
                                 mimetype='application/json',
                                 status=400)
-            if (edit_password != None and len(edit_password) > 151):
-                return Response(json.dumps(len_error),
-                            mimetype='application/json',
-                            status=400)
+        if (edit_password != "" and len(edit_password) > 151):
+            return Response(json.dumps(len_error),
+                        mimetype='application/json',
+                        status=400)
         try:
             if (len(edit_token) == 32):
                 conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
@@ -119,12 +119,12 @@ def journal_user():
                 varified_user = cursor.fetchone()
                 if (len(varified_user) == 1):
                     try:
-                        if "email" in edit_keys:
+                        if(edit_email != ""):
                             cursor.execute("UPDATE user set email=? WHERE id=?",[edit_email, varified_user[0]])
                             conn.commit()
                             cursor.execute("SELECT id, email, first_name FROM user WHERE id=?",[varified_user[0],])
                             user_info = cursor.fetchone()
-                        if "password" in edit_keys:
+                        if (edit_password != ""):
                             hashedpass = bcrypt.hashpw(edit_password.encode(), salt)
                             cursor.execute("UPDATE user set password=? WHERE id=?",[hashedpass, varified_user[0]])
                             conn.commit()
