@@ -94,7 +94,7 @@ def journal_entry():
             clientID = params.get("userId")
             conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM entry WHERE user_id=? AND date_stamp <= CURRENT_TIMESTAMP -7",[clientID,])
+            cursor.execute("SELECT * FROM entry WHERE user_id=? AND date_stamp > now() - INTERVAL 7 day",[clientID,])
             entry_info = cursor.fetchall()
             entry_list = []
             for entry in entry_info:
