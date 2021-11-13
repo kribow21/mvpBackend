@@ -4,8 +4,6 @@ import mariadb
 import dbcreds
 import json
 
-
-
 @app.route("/api/quotes", methods=["GET","POST", "DELETE"])
 def journalQuotes(): 
     conn = None

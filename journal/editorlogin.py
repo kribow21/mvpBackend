@@ -51,7 +51,7 @@ def editorlogin():
                     return Response(json.dumps(fail_login, default=str),
                                             mimetype='application/json',
                                             status=401)
-            #if editorid's correspond then create/insert a token for their session
+            #if editors password corresponds then create/insert a token for their session
             elif (bcrypt.checkpw(editor_pass.encode(),editor_info[0].encode())):
                 tokenID = uuid4().hex
                 cursor.execute("INSERT INTO editor_session (editor_token,editor_id) VALUES (?,?)",[tokenID,editor_info[1]])

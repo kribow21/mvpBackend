@@ -51,7 +51,7 @@ def userlogin():
                     return Response(json.dumps(fail_login, default=str),
                                             mimetype='application/json',
                                             status=401)
-            #if userid's correspond then create/insert a token for their session
+            #if users password correspond then create/insert a token for their session
             elif (bcrypt.checkpw(user_pass.encode(),user_info[0].encode())):
                 tokenID = uuid4().hex
                 cursor.execute("INSERT INTO user_session (login_token,user_id) VALUES (?,?)",[tokenID,user_info[1]])
@@ -60,6 +60,7 @@ def userlogin():
                 return Response(json.dumps(fail_login, default=str),
                                             mimetype='application/json',
                                             status=401)
+            #then generates response
             if (user_info != None):
                 cursor.execute("SELECT user.id, user.first_name,user_session.login_token FROM user_session INNER JOIN user ON user_session.user_id=user.id WHERE user_id=?",[user_info[1],])
                 select_user = cursor.fetchone()
@@ -111,7 +112,6 @@ def userlogin():
             if (len(user_token) == 32):
                 conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
                 cursor = conn.cursor()
-                print(user_token)
                 cursor.execute("DELETE FROM user_session WHERE login_token=?",[user_token,])
                 conn.commit()
                 if (cursor.rowcount ==1):

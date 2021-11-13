@@ -25,6 +25,7 @@ def journal_entry():
         user_entry = data.get("content")
         entry_date = data.get("date")
         date_pattern = "^(-?(?:[1-9][0-9]*)?[0-9]{4})-(1[0-2]|0[1-9])-(3[01]|0[1-9]|[12][0-9])T(2[0-3]|[01][0-9]):([0-5][0-9]):([0-5][0-9])(\.[0-9]{3})?(Z)?$"
+        #checking the passed date from the frontend to make sure its what I expect
         if(re.search(date_pattern, entry_date) == None):
             return Response(json.dumps(date_wrong, default=str),
                                 mimetype='application/json',
@@ -35,7 +36,7 @@ def journal_entry():
             cursor = conn.cursor()
             cursor.execute("SELECT user_id from user_session WHERE login_token=?",[user_token,])
             user_id = cursor.fetchone()
-        #checking if user is logged in. if so, allow them to create a tweet
+        #checking if user is logged in. if so, allow them to create a entry
             if (len(user_entry) <= 1000 and len(user_entry) > 0):
                 cursor.execute("INSERT INTO entry(user_id, content, date_stamp) VALUES (?,?,?)",[user_id[0], user_entry, entry_date])
                 conn.commit()
@@ -94,6 +95,7 @@ def journal_entry():
             clientID = params.get("userId")
             conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
             cursor = conn.cursor()
+            #grabbing the previous 7 days of entries to display on the log page
             cursor.execute("SELECT * FROM entry WHERE user_id=? AND date_stamp > now() - INTERVAL 7 day",[clientID,])
             entry_info = cursor.fetchall()
             entry_list = []

@@ -24,7 +24,7 @@ def journalBooks():
         if_empty = {
             "message" : "Enter in required data"
         }
-        #before connecting the db check the passed data 
+        #before connecting the db check the passed data. checks image link length below in if statement
         if (title == ''):
             return Response(json.dumps(if_empty, default=str),
                                 mimetype='application/json',
@@ -44,7 +44,7 @@ def journalBooks():
             cursor = conn.cursor()
             cursor.execute("SELECT editor_id from editor_session WHERE editor_token=?",[token,])
             editor_id = cursor.fetchone()
-        #checking if editor is logged in. if so, allow them to create a quote
+        #checking if editor is logged in. if so, allow them to create a book
             if (len(imgLink) <= 300 and len(imgLink) > 0):
                 cursor.execute("INSERT INTO book(title, author ,image_URL, shop_URL) VALUES (?,?,?,?)",[title, author, imgLink, shopLink])
                 conn.commit()

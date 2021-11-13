@@ -49,6 +49,7 @@ def journal_user():
         try:
             conn = mariadb.connect(user=dbcreds.user,password=dbcreds.password,host=dbcreds.host,port=dbcreds.port,database=dbcreds.database)
             cursor = conn.cursor()
+        #used the hashed variable to encode the password to pass to the db
             cursor.execute("INSERT INTO user(email, password, first_name) VALUES (?,?,?)",[user_email,hashed, first_name]) 
         #in order to send back a token you need to create a token in the data user_session table created with the selected id 
             cursor.execute("SELECT id FROM user WHERE email=? AND password=?",[user_email, hashed,])
@@ -97,7 +98,6 @@ def journal_user():
         edit_email = data.get("email")          
         edit_password = data.get("password")
         edit_token = data.get("loginToken")
-
         patch_fail = {
             "message" : "failed to match the login token to a user"
         }

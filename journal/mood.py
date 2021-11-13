@@ -47,6 +47,7 @@ def user_mood():
                     return Response(json.dumps(mood_sucess, default=str),
                                 mimetype='application/json',
                                 status=201)
+                #handles if the user tries to input more than one mood a day
                 except mariadb.IntegrityError:
                     return Response(json.dumps(mood_error, default=str),
                                 mimetype='application/json',
@@ -92,10 +93,8 @@ def user_mood():
                 cursor.execute("SELECT date,mood FROM mood WHERE user_id=? AND date <= CURRENT_TIMESTAMP -30",[userID,])
                 # cursor.execute("SELECT date,mood FROM mood WHERE user_id=?",[userID,])
                 allMoods = cursor.fetchall()
-                print(allMoods)
-                moods = {
-
-                }
+            #adding an item to a dictionary using the date as the key and the mood as the value. mood is the looping key
+                moods = {}
                 for mood in allMoods:
                     moods[mood[0].strftime('%Y-%m-%d')] = mood[1]
                 return Response(json.dumps(moods, default=str),

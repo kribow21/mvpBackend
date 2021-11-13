@@ -24,7 +24,7 @@ def journalImages():
             cursor = conn.cursor()
             cursor.execute("SELECT editor_id from editor_session WHERE editor_token=?",[token,])
             editor_id = cursor.fetchone()
-        #checking if editor is logged in. if so, allow them to create a quote
+        #checking if editor is logged in. if so, allow them to create an image
             if (len(imgLink) <= 300 and len(imgLink) > 0):
                 cursor.execute("INSERT INTO image(image_URL) VALUES (?)",[imgLink,])
                 conn.commit()

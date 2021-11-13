@@ -32,7 +32,7 @@ def journal_editor():
             return Response(json.dumps(if_empty, default=str),
                     mimetype='application/json',
                     status=409)
-        elif (len(editor_password) < 1):
+        elif (len(editor_password) < 1 or len(editor_password) > 151):
             return Response(json.dumps(len_error,default=str),
                             mimetype='application/json',
                             status=409)
@@ -87,6 +87,7 @@ def journal_editor():
                 print('connection closed')
             else:
                 print('the connection never opened, nothing to close')
+
     elif request.method == "PATCH":
         data = request.json
         edit_email = data.get("email")          
@@ -119,6 +120,7 @@ def journal_editor():
                             cursor.execute("SELECT id, email FROM editor WHERE id=?",[varified_editor[0],])
                             editors_info = cursor.fetchone()
                         if (edit_password != ""):
+                            #new password also has to be hashed
                             hashedpass = bcrypt.hashpw(edit_password.encode(), salt)
                             cursor.execute("UPDATE editor set password=? WHERE id=?",[hashedpass, varified_editor[0]])
                             conn.commit()
@@ -162,6 +164,7 @@ def journal_editor():
                 print('connection closed')
             else:
                 print('the connection never opened, nothing to close')
+
     elif request.method == "DELETE":
         data = request.json
         editor_pass = data.get("password")
@@ -201,6 +204,7 @@ def journal_editor():
             if (valid_token[0] == editor_token):
                 cursor.execute("DELETE FROM editor_session WHERE editor_token=?",[valid_token[0]])
                 conn.commit()
+            #encode the passed password to ensure it matches the db hash
             if(bcrypt.checkpw(editor_pass.encode(), valid_pass.encode())):
                 cursor.execute("DELETE FROM editor WHERE password=?",[editor_pass,])
                 conn.commit()
